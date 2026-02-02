@@ -1,0 +1,9 @@
+node_modules
+.env
+.git
+test-tts.js
+list-models.js
+test-audio.wav
+converted-test.wav
+*.wav
+*.mp3
