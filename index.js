@@ -13,9 +13,12 @@ if (!process.env.TELEGRAM_BOT_TOKEN) console.error("CRITICAL: TELEGRAM_BOT_TOKEN
 if (!process.env.GOOGLE_API_KEY) console.warn("WARNING: GOOGLE_API_KEY is missing!");
 if (!process.env.HF_TOKEN) console.log("INFO: HF_TOKEN is missing, will fallback to GOOGLE_API_KEY if available.");
 
-// Initialize Hugging Face Inference
-// Initialize Hugging Face Inference
-// (Removed: We are using Google Gemini for transcription now)
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+// Initialize Google Gemini
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+// Using gemini-flash-latest as verified in tests
+const geminiModel = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
 // Initialize Telegram Bot
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
