@@ -89,7 +89,7 @@ async function transcribeAudio(audioBuffer) {
     }
 }
 
-bot.command("start", (ctx) => ctx.reply("Welcome to the **100% Free** Translation Voice Bot!\n\nSend me any text, then choose the language you want to translate it to. I will send you the translation as text and voice!"));
+bot.command("start", (ctx) => ctx.reply("Welcome to the **100% Free** Translation Voice Bot!\n\nSend me any text or voice message, then choose the language you want to translate it to. I will send you the translation as text and voice!"));
 
 bot.on("message:text", async (ctx) => {
     const text = ctx.message.text;
@@ -200,3 +200,4 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
     console.log(`Web server listening on port ${port}`);
 });
+
