@@ -15,21 +15,7 @@ if (!process.env.HF_TOKEN) console.log("INFO: HF_TOKEN is missing, will fallback
 
 // Initialize Hugging Face Inference
 // Initialize Hugging Face Inference
-// trim() removes accidental whitespace from copy-pasting
-const HF_TOKEN = process.env.HF_TOKEN ? process.env.HF_TOKEN.trim() : null;
-let hfClient = null;
-
-if (HF_TOKEN) {
-    try {
-        // Try initializing with object format which is required in some versions
-        hfClient = new HfInference(HF_TOKEN);
-        console.log(`Hugging Face client initialized with token starting: ${HF_TOKEN.substring(0, 4)}...`);
-    } catch (e) {
-        console.error("Failed to initialize Hugging Face client:", e.message);
-    }
-} else {
-    console.warn("WARNING: HF_TOKEN is missing. Voice transcription will not work.");
-}
+// (Removed: We are using Google Gemini for transcription now)
 
 // Initialize Telegram Bot
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
@@ -75,34 +61,28 @@ async function generateSpeech(text, langCode) {
 }
 
 async function transcribeAudio(audioBuffer) {
-    if (!HF_TOKEN) {
-        throw new Error("HF_TOKEN is missing. Please add it to your environment variables.");
+    if (!process.env.GOOGLE_API_KEY) {
+        throw new Error("GOOGLE_API_KEY is missing.");
     }
 
     try {
-        const response = await fetch(
-            "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo",
+        console.log("Sending audio to Google Gemini...");
+        const result = await geminiModel.generateContent([
             {
-                headers: {
-                    Authorization: `Bearer ${HF_TOKEN}`,
-                    "Content-Type": "application/octet-stream",
-                },
-                method: "POST",
-                body: audioBuffer,
-            }
-        );
+                inlineData: {
+                    mimeType: "audio/ogg", // Telegram voice is OGG
+                    data: audioBuffer.toString("base64")
+                }
+            },
+            { text: "Transcribe this audio exactly. Do not add any conversational filler. Just the text." }
+        ]);
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`API Error ${response.status}: ${errorText}`);
-        }
-
-        const result = await response.json();
-        return result.text;
+        const text = result.response.text();
+        return text;
 
     } catch (error) {
-        console.error("Transcription error:", error);
-        throw new Error(`Failed to transcribe. ${error.message}`);
+        console.error("Gemini Transcription error:", error);
+        throw new Error(`Failed to transcribe with Google. ${error.message}`);
     }
 }
 
@@ -145,7 +125,6 @@ bot.on("message:voice", async (ctx) => {
         const response = await axios.get(url, { responseType: 'arraybuffer' });
         const audioBuffer = Buffer.from(response.data);
 
-        await ctx.api.editMessageText(ctx.chat.id, statusMsg.message_id, "Transcribing voice...");
         const transcribedText = await transcribeAudio(audioBuffer);
 
         if (!transcribedText || transcribedText.trim() === "") {
