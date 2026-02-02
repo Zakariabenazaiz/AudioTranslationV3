@@ -14,13 +14,15 @@ if (!process.env.GOOGLE_API_KEY) console.warn("WARNING: GOOGLE_API_KEY is missin
 if (!process.env.HF_TOKEN) console.log("INFO: HF_TOKEN is missing, will fallback to GOOGLE_API_KEY if available.");
 
 // Initialize Hugging Face Inference
-const HF_TOKEN = process.env.HF_TOKEN;
+// Initialize Hugging Face Inference
+// trim() removes accidental whitespace from copy-pasting
+const HF_TOKEN = process.env.HF_TOKEN ? process.env.HF_TOKEN.trim() : null;
 let hfClient = null;
 
 if (HF_TOKEN) {
     try {
         hfClient = new HfInference(HF_TOKEN);
-        console.log("Hugging Face client initialized.");
+        console.log(`Hugging Face client initialized with token starting: ${HF_TOKEN.substring(0, 4)}...`);
     } catch (e) {
         console.error("Failed to initialize Hugging Face client:", e.message);
     }
@@ -83,7 +85,8 @@ async function transcribeAudio(audioBuffer) {
         return result.text;
     } catch (error) {
         console.error("Transcription error:", error);
-        throw new Error("Failed to transcribe audio. " + error.message);
+        const tokenDebug = HF_TOKEN ? `(Token: ${HF_TOKEN.substring(0, 3)}...)` : "(No Token)";
+        throw new Error(`Failed to transcribe. ${tokenDebug} ${error.message}`);
     }
 }
 
