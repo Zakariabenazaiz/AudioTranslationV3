@@ -21,6 +21,7 @@ let hfClient = null;
 
 if (HF_TOKEN) {
     try {
+        // Try initializing with object format which is required in some versions
         hfClient = new HfInference(HF_TOKEN);
         console.log(`Hugging Face client initialized with token starting: ${HF_TOKEN.substring(0, 4)}...`);
     } catch (e) {
@@ -74,19 +75,34 @@ async function generateSpeech(text, langCode) {
 }
 
 async function transcribeAudio(audioBuffer) {
-    if (!hfClient) {
-        throw new Error("Hugging Face client is not initialized. Please check your API keys.");
+    if (!HF_TOKEN) {
+        throw new Error("HF_TOKEN is missing. Please add it to your environment variables.");
     }
+
     try {
-        const result = await hfClient.automaticSpeechRecognition({
-            model: 'openai/whisper-large-v3-turbo',
-            data: audioBuffer,
-        });
+        const response = await fetch(
+            "https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo",
+            {
+                headers: {
+                    Authorization: `Bearer ${HF_TOKEN}`,
+                    "Content-Type": "application/octet-stream",
+                },
+                method: "POST",
+                body: audioBuffer,
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API Error ${response.status}: ${errorText}`);
+        }
+
+        const result = await response.json();
         return result.text;
+
     } catch (error) {
         console.error("Transcription error:", error);
-        const tokenDebug = HF_TOKEN ? `(Token: ${HF_TOKEN.substring(0, 3)}...)` : "(No Token)";
-        throw new Error(`Failed to transcribe. ${tokenDebug} ${error.message}`);
+        throw new Error(`Failed to transcribe. ${error.message}`);
     }
 }
 
